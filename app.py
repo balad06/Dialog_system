@@ -28,12 +28,14 @@ def data_prep():
     data = pd.DataFrame({'dialog_act': dialog_act, 'utterance': utterances})
     rng = RandomState()
 
-    train = data.sample(frac=0.7, random_state=rng)
+    train = data.sample(frac=0.85, random_state=rng)
+    train_sample_test= train.sample(frac =.2 ,random_state=rng)
     test = data.loc[~data.index.isin(train.index)]
     print(data.head())
     data.to_csv("dialog_act.csv", index=False)
     train.to_csv("dialog_act_train.csv",index=False)
     test.to_csv("dialog_act_test.csv",index =False)
+    train_sample_test.to_csv('dialog_act_trainsample.csv',index =False)
 def majority_class_baseline(utterance):
     df = pd.read_csv('dialog_act.csv')
     # result = random.choice(df['inform'])
@@ -140,6 +142,6 @@ def train():
     model.save('chatbot_model.h5', hist)
 
 if __name__ == "__main__":
-    majority_class_bot()
+    # majority_class_bot()
     # rule_based_chat_bot()
-    # data_prep()
+    data_prep()
