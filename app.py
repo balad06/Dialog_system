@@ -6,12 +6,17 @@ import json
 import pickle
 
 import numpy as np
+import pickle
 from numpy.random import RandomState
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.python.keras.models import Sequential
 from tensorflow.python.keras.layers import Dense, Activation, Dropout
 from keras.optimizers import SGD
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.tree import DecisionTreeClassifier
 import random
 import pandas as pd
 
@@ -32,10 +37,11 @@ def data_prep():
     train_sample_test= train.sample(frac =.2 ,random_state=rng)
     test = data.loc[~data.index.isin(train.index)]
     print(data.head())
-    data.to_csv("dialog_act.csv", index=False)
-    train.to_csv("dialog_act_train.csv",index=False)
-    test.to_csv("dialog_act_test.csv",index =False)
-    train_sample_test.to_csv('dialog_act_trainsample.csv',index =False)
+    data.to_csv(r"raw_files/dialog_act.csv", index=False)
+    train.to_csv(r"raw/files/dialog_act_train.csv",index=False)
+    test.to_csv(r"raw_files/dialog_act_test.csv",index =False)
+    train_sample_test.to_csv(r'raw_files/dialog_act_trainsample.csv',index =False)
+
 def majority_class_baseline(utterance):
     df = pd.read_csv('dialog_act.csv')
     # result = random.choice(df['inform'])
@@ -44,18 +50,43 @@ def majority_class_baseline(utterance):
     inform_values = inform_df['utterance'].tolist()
     random_value = random.choice(inform_values)+'\n'
     return random_value
+
+
 def rule_based_dialogact_detect (utterance):
-    if 'goodbye' in utterance:
-        return 'bye'
-    elif 'phone number' in utterance or 'phone' in utterance:
+    if ("kay" in utterance or "okay and" in utterance or "okay um" in utterance):
+        return 'ack'
+    elif ("yes" in utterance and len(utterance)==3 or "yeah" in utterance or "yea" in utterance or "yes" in utterance):
+        return 'affirm'
+    elif ("is it" in utterance or "do they" in utterance or "does it" in utterance):
+        return 'confirm'
+    elif ("wrong" in utterance or "dont want" in utterance or "no not" in utterance or "change" in utterance or "not" in utterance):
+        return 'deny'
+    elif ("hi" in utterance  or "hello" in utterance ):
+        return 'hello'
+    elif ("looking for" in utterance or "any" in utterance or "seafood" in utterance or "mediterranean" in utterance or "east" in utterance):
+        return 'inform'
+    elif ("no" in utterance):
+        return 'negate'
+    elif ("welcome" in utterance or "okay" in utterance or "noise" in utterance):
+        return 'null'
+    elif ("else" in utterance or "how about" in utterance or "anything else" in utterance):
+        return 'reqalts'
+    elif ("what" in utterance or "whats" in utterance or "could i" in utterance):
         return 'request'
-    elif 'address' in utterance:
-        return 'request'
-    elif 'thank' in utterance:
+    elif ("start" in utterance or "reset" in utterance):
+        return 'restart'
+    elif ("thank you" in utterance or "thankyou" in utterance):
         return 'thankyou'
+    elif ("goodbye" in utterance or "good bye" in utterance):
+        return 'bye'
+    elif ("again" in utterance or "go back" in utterance or "back" in utterance):
+        return 'repeat'
+    elif ("more" in utterance):
+        return 'reqmore'
     else:
         return 'inform'
     
+
 def rulebased_class_baseline(utterance):
     df = pd.read_csv('dialog_act.csv')
     # result = random.choice(df['inform'])
@@ -66,6 +97,7 @@ def rulebased_class_baseline(utterance):
     random_value = random.choice(inform_values)+'\n'
     return random_value
 
+
 def majority_class_bot():
     flag= True
     msg = input("Hi I'm a bot is anything i can help you with:")
@@ -75,6 +107,7 @@ def majority_class_bot():
         if msg == 'quit':
             flag= False
             
+
 def rule_based_chat_bot():
     flag= True
     msg = input("Hi I'm a bot is anything i can help you with:")
@@ -83,65 +116,98 @@ def rule_based_chat_bot():
         msg= input(bot_response)
         if msg == 'quit':
             flag= False
-def train():
-    nltk.download('punkt')
-    nltk.download('wordnet')
-    lemmatizer = WordNetLemmatizer()
-    words=[]
-    classes = []
-    documents = []
-    ignore_words = ['?', '!']
-    data_file = open('D:\FlaskChatbot\intents.json').read()
-    intents = json.loads(data_file)
-    for intent in intents['intents']:
-        for pattern in intent['patterns']:
-            w = nltk.word_tokenize(pattern)
-            words.extend(w)
-            documents.append((w, intent['tag']))
-            if intent['tag'] not in classes:
-                classes.append(intent['tag'])
-    words = [lemmatizer.lemmatize(w.lower()) for w in words if w not in ignore_words]
-    words = sorted(list(set(words)))
+            
 
-    classes = sorted(list(set(classes)))
-    print (len(documents), "documents")
-    print (len(classes), "classes", classes)
-    print (len(words), "unique lemmatized words", words)
-    pickle.dump(words,open('words.pkl','wb'))
-    pickle.dump(classes,open('classes.pkl','wb'))
-    training = []
-    output_empty = [0] * len(classes)
-    for doc in documents:
-        bag = []
-        pattern_words = doc[0]
-        pattern_words = [lemmatizer.lemmatize(word.lower()) for word in pattern_words]
-        for w in words:
-            bag.append(1) if w in pattern_words else bag.append(0)
-        output_row = list(output_empty)
-        output_row[classes.index(doc[1])] = 1
-        training.append([bag, output_row])
-    random.shuffle(training)
-    training = np.array(training,dtype=object)
-    train_x = list(training[:,0])
-    train_y = list(training[:,1])
-    print("Training data created")
+def evaluate_rule_based_bot():
+    data =pd.read_csv('dialog_act_test.csv')
+    data['predicted_dialogact'] = data['utterance'].apply(rule_based_dialogact_detect)
+
+    accuracy = sum(data['dialog_act'] == data['predicted_dialogact']) / len(data)
+    data.to_csv("rulebased_results.csv", index=False)
+    print(f"accuracy: {accuracy:.2f}")            
 
 
-    model = Sequential()
-    model.add(Dense(128, input_shape=(len(train_x[0]),), activation='relu'))
-    model.add(Dropout(0.5))
-    model.add(Dense(64, activation='relu'))
-    model.add(Dropout(0.5))
-    model.add(Dense(len(train_y[0]), activation='softmax'))
+def logistic_reg_model_evaluate():
+    with open(r'raw_files/logisticmodel.pkl', 'rb') as f:
+        lr = pickle.load(f)
+    with open(r'raw_files/logisticvectorizer.pkl', 'rb') as f:
+        cv = pickle.load(f)
+    data =pd.read_csv(r'raw_files/dialog_act_test.csv')
+    data = data.fillna('no dialog')
+    x_test = data['utterance']
+    y_test = data['dialog_act']
+    # cv = CountVectorizer()
+    x_test_cv=cv.transform(x_test)
+    result=lr.predict(x_test_cv)
+    data['prediction']=result
+    data.to_csv(r'raw_files/logisticmodelresults.csv',index=False)
+    accuracy = sum(data['dialog_act'] == data['prediction']) / len(data)
+    print(f"accuracy: {accuracy:.2f}")
+    print(result)
 
-# Compile model. Stochastic gradient descent with Nesterov accelerated gradient gives good results for this model
-    sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
-    model.compile(loss='categorical_crossentropy', optimizer=sgd, metrics=['accuracy'])
-
-    hist = model.fit(np.array(train_x), np.array(train_y), epochs=200, batch_size=5, verbose=1)
-    model.save('chatbot_model.h5', hist)
-
+def logistic_reg_train():
+    data =pd.read_csv(r'raw_files/dialog_act_train.csv')
+    data = data.fillna('no dialog')
+    x_train = data['utterance']
+    y_train = data['dialog_act']
+    lr = LogisticRegression()
+    cv = CountVectorizer()
+    x_train_cv = cv.fit_transform(x_train)
+    
+    lr.fit(x_train_cv, y_train)
+    test_sample=['thank you','how about thai']
+    x_ts_cv=cv.transform(test_sample)
+    result=lr.predict(x_ts_cv)
+    print(result)
+    with open(r'raw_files/logisticmodel.pkl','wb') as f:
+        pickle.dump(lr,f)
+    with open(r'raw_files/logisticvectorizer.pkl', 'wb') as f:
+        pickle.dump(cv, f)
+        
+        
+def desision_tree_model_evaluate():
+    with open(r'raw_files/decisiontreemodel.pkl', 'rb') as f:
+        lr = pickle.load(f)
+    with open(r'raw_files/decisiontreevectorizer.pkl', 'rb') as f:
+        cv = pickle.load(f)
+    data =pd.read_csv(r'raw_files/dialog_act_test.csv')
+    data = data.fillna('no dialog')
+    x_test = data['utterance']
+    y_test = data['dialog_act']
+    # cv = CountVectorizer()
+    x_test_cv=cv.transform(x_test)
+    result=lr.predict(x_test_cv)
+    data['prediction']=result
+    data.to_csv(r'raw_files/decisiontreeresults.csv',index=False)
+    accuracy = sum(data['dialog_act'] == data['prediction']) / len(data)
+    print(f"accuracy: {accuracy:.2f}")
+    print(result)
+    
+            
+def descion_tree_train():
+    data =pd.read_csv(r'raw_files/dialog_act_train.csv')
+    data = data.fillna('no dialog')
+    x_train = data['utterance']
+    y_train = data['dialog_act']    
+    vectorizer = TfidfVectorizer()
+    x_train_vector = vectorizer.fit_transform(x_train)
+    dt = DecisionTreeClassifier(random_state=20)
+    dt.fit(x_train_vector, y_train)
+    test_sample=['thank you','how about thai']
+    x_ts_vector=vectorizer.transform(test_sample)
+    result=dt.predict(x_ts_vector)
+    print(result)
+    with open(r'raw_files/decisiontreemodel.pkl','wb') as f:
+        pickle.dump(dt,f)
+    with open(r'raw_files/decisiontreevectorizer.pkl', 'wb') as f:
+        pickle.dump(vectorizer, f)
 if __name__ == "__main__":
     # majority_class_bot()
     # rule_based_chat_bot()
-    data_prep()
+    #data_prep()
+    # logistic_reg()
+    # evaluate_rule_based_bot()
+    # logistic_reg_train()
+    #logistic_reg_model_evaluate()
+    # descion_tree_train()
+    desision_tree_model_evaluate()
