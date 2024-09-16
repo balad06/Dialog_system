@@ -42,7 +42,7 @@ def data_prep():
     test.to_csv(r"raw_files/dialog_act_test.csv",index =False)
     train_sample_test.to_csv(r'raw_files/dialog_act_trainsample.csv',index =False)
 
-def majority_class_baseline(utterance):
+def majority_class_bot_message(utterance):
     df = pd.read_csv('dialog_act.csv')
     # result = random.choice(df['inform'])
     diag_acts= df['dialog_act']
@@ -51,6 +51,8 @@ def majority_class_baseline(utterance):
     random_value = random.choice(inform_values)+'\n'
     return random_value
 
+def majority_class_baseline(utterance):
+    return 'inform'
 
 def rule_based_dialogact_detect (utterance):
     if ("kay" in utterance or "okay and" in utterance or "okay um" in utterance):
@@ -106,8 +108,20 @@ def majority_class_bot():
         msg= input(bot_response)
         if msg == 'quit':
             flag= False
-            
+def evaluate_majority_baseline_based_bot():
+    data =pd.read_csv(r'raw_files/dialog_act_test.csv')
+    data['predicted_dialogact'] = data['utterance'].apply(majority_class_baseline)
 
+    accuracy = sum(data['dialog_act'] == data['predicted_dialogact']) / len(data)
+    data.to_csv("rulebased_results.csv", index=False)
+    print(f"accuracy: {accuracy:.2f}")         
+def evaluate_rule_based_bot():
+    data =pd.read_csv(r'raw_files/dialog_act_test.csv')
+    data['predicted_dialogact'] = data['utterance'].apply(rule_based_dialogact_detect)
+
+    accuracy = sum(data['dialog_act'] == data['predicted_dialogact']) / len(data)
+    data.to_csv("rulebased_results.csv", index=False)
+    print(f"accuracy: {accuracy:.2f}")  
 def rule_based_chat_bot():
     flag= True
     msg = input("Hi I'm a bot is anything i can help you with:")
@@ -210,4 +224,5 @@ if __name__ == "__main__":
     # logistic_reg_train()
     #logistic_reg_model_evaluate()
     # descion_tree_train()
-    desision_tree_model_evaluate()
+    # desision_tree_model_evaluate()
+    evaluate_majority_baseline_based_bot()
