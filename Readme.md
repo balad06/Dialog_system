@@ -1,5 +1,11 @@
 The aim of this repository is to create a working dialog system along with classifiers that are required for the bot to identify the intents
 
+Using the bot:
+    1) Download the files or clone the repository
+    2) use the requirements.txt to download required packages(set up a venv if required)
+    3) extract the raw_files
+    4) Run the app.py file using the command py app.py
+
 1a Text classification
     We used for methods for text classification majority base line, rule based base line and two machine learning algorithms (Logistic reggression,Descsion Tree)
 
@@ -28,4 +34,17 @@ The aim of this repository is to create a working dialog system along with class
     3) We use these keywords to identify the restaurants specified by the user in the csv file provide and return a random restaurant from the selection.
     4) If the system is not able to find an exact match it uses the levenshtein distance to provide the closest value.
     5) We store the selected restaurant and the filtered results as a CSV file to help the user with further questions and providing with alternative response
-    6) Yet to be implemented!! use the results stored and the next message of the user to continue the conversation and find the exact result!
+    6) Implemented a fully functional state transition flow for the Dialog system
+
+1c Reasoning and configurations
+
+    1) We have implemented the reasoning part as described in the black board
+        1a) We added the parameters for the new columns at random
+        1b) We again used keybert for keyword extraction
+        1c) Then using the keywords we filtered the results based on the conditons
+        1d) We then added the reasoning for the result with the bot message
+    2) for the configurations we have used
+        2a) Allow preferences to be stated in random order or not
+        2b) Allow preferences to be stated in a single utterance only, or in multiple utterances with one preference per utterance only, or without restrictions (any number of utterances and any number of preferences per utterance)
+        2c) Allow dialog restarts or not
+        2d) OUTPUT IN ALL CAPS OR NOT
