@@ -7,7 +7,7 @@ Using the bot:
     4) Run the app.py file using the command py app.py
 
 1a Text classification
-    We used for methods for text classification majority base line, rule based base line and two machine learning algorithms (Logistic reggression,Descsion Tree)
+    We used for methods for text classification majority base line, rule based base line and two machine learning algorithms (Logistic reggression,Desicsion Tree)
 
     Results of the classifiers
 
@@ -44,7 +44,7 @@ Using the bot:
         1c) Then using the keywords we filtered the results based on the conditons
         1d) We then added the reasoning for the result with the bot message
     2) for the configurations we have used
-        2a) Allow preferences to be stated in random order or not
-        2b) Allow preferences to be stated in a single utterance only, or in multiple utterances with one preference per utterance only, or without restrictions (any number of utterances and any number of preferences per utterance)
+        2a) Text to speach for bot responses
+        2b) Delay in bot response
         2c) Allow dialog restarts or not
         2d) OUTPUT IN ALL CAPS OR NOT
