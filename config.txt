@@ -1,1 +1,1 @@
-{"allow_Restart":"true","caps":"true","Delay":"false"}
+{"allow_Restart":"true","caps":"true","Delay":"false","texttoSpeach":"false"}

@@ -50,25 +50,25 @@ def data_prep():
 
 if __name__ == "__main__":
     
-    no = input('enter a choice 1) majority based 2) Rule based 3) Logistic reg 4) Descison tree (0) To use the bot' )
-    if no =='1':
-        mjr=MajorityBasedBasline()
-        mjr.evaluate_majority_baseline_based_bot()
-    elif no =='2':
-        rb =RulebasedBaseline()
-        rb.evaluate_rule_based_bot()
-    elif no =='3':
-        lr = LogisticReg()
-        lr.logistic_reg_train()
-        lr.logistic_reg_model_evaluate()
-    elif no =='4':
-        dt= DecisionTree()
-        dt.descion_tree_train()
-        dt.desision_tree_model_evaluate()
-    elif no == 'data':
-        data_prep()
-    elif no == '0':
-        chatbot=Chatbot()
-        chatbot.class_bot()
-    else:
-        print('enter valid number')
+    # no = input('enter a choice 1) majority based 2) Rule based 3) Logistic reg 4) Descison tree (0) To use the bot' )
+    # if no =='1':
+    #     mjr=MajorityBasedBasline()
+    #     mjr.evaluate_majority_baseline_based_bot()
+    # elif no =='2':
+    #     rb =RulebasedBaseline()
+    #     rb.evaluate_rule_based_bot()
+    # elif no =='3':
+    #     lr = LogisticReg()
+    #     lr.logistic_reg_train()
+    #     lr.logistic_reg_model_evaluate()
+    # elif no =='4':
+    #     dt= DecisionTree()
+    #     dt.descion_tree_train()
+    #     dt.desision_tree_model_evaluate()
+    # elif no == 'data':
+    #     data_prep()
+    # elif no == '0':
+    chatbot=Chatbot()
+    chatbot.class_bot()
+    # else:
+        # print('enter valid number')

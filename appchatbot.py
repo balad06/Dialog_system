@@ -17,15 +17,21 @@ class Chatbot:
     def __init__(self):
         self.current_state = '1.hello'
         self.prevbotresp = ''
-        self.engine = pyttsx3.init()
-        pass
-    def textclassfier(self,msg):
+        with open(r'config.txt', "r") as file:
+            config_str=file.read()
+        self.config=json.loads(config_str)
+        if self.config["texttoSpeach"] =="true":
+            self.engine = pyttsx3.init()
         with open(r'raw_files/logisticmodelnodupe.pkl', 'rb') as f:
-            lr = pickle.load(f)
+            self.lr = pickle.load(f)
         with open(r'raw_files/logisticvectorizernodupe.pkl', 'rb') as f:
-            cv = pickle.load(f)
-        msg_cv=cv.transform([msg])
-        result=lr.predict(msg_cv)    
+            self.cv = pickle.load(f)
+        with open(r'raw_files/usagereports.txt', 'rb') as f:
+            self.reports = json.load(f)
+        pass
+    def textclassfier(self,msg):        
+        msg_cv=self.cv.transform([msg])
+        result=self.lr.predict(msg_cv)    
         return result[0]
     
     def prepresponse(self,message,intent,results,matched_columns):
@@ -60,13 +66,13 @@ class Chatbot:
 
             
                     if response_restarent['min_dist']=='lv_pricerange': 
-                        bot_msg= 'Did you mean {} price range If so do you have any other preferences\n'.format(response_restarent['pricerange'])
+                        bot_msg= 'Did you mean {} price range If so do you have any other preferences else restart\n'.format(response_restarent['pricerange'])
                         matched_columns.append('pricerange')
                     if response_restarent['min_dist']=='lv_area':
-                        bot_msg= 'Did you mean {} price range If so do you have any other preferences\n'.format(response_restarent['area'])
+                        bot_msg= 'Did you mean {} price range If so do you have any other preferences else restart\n'.format(response_restarent['area'])
                         matched_columns.append('area')                        
                     if response_restarent['min_dist']=='lv_food':
-                        bot_msg= 'Did you mean {} price range If so do you have any other preferences\n'.format(response_restarent['food'])
+                        bot_msg= 'Did you mean {} price range If so do you have any other preferences else restart\n'.format(response_restarent['food'])
                         matched_columns.append('food')
                     
             return bot_msg,matched_columns
@@ -217,6 +223,7 @@ class Chatbot:
         keywords, scores = map(list, zip(*keywords))
         filtered_hotels=pd.read_csv(r'raw_files/filtered_hotels.csv')
         condtional_romantic=False
+        reason=None
         contridiction =''
         filters_applied = []
         synonyms = {}
@@ -268,7 +275,7 @@ class Chatbot:
                 filtered_hotels = filtered_hotels[filtered_hotels['crowdedness'] == "busy"]
                 reason =" it has assigned seats, because in a busy restaurant the waiter decides where you sit"
                 filters_applied.append('assigned seats')
-            
+
 
         
         if len(filtered_hotels)==0:
@@ -279,7 +286,10 @@ class Chatbot:
             filtered_hotels.to_csv(r'raw_files/filtered_hotels.csv',index=False)
             selected_restaurant.to_csv(r'raw_files/selected_restaurant.csv',index=False)
             if condtional_romantic == False:
-                bot_msg='Would you like to try {} '.format(response_restarent['restaurantname'])+ reason+'\n'
+                if reason!=None:
+                    bot_msg='Would you like to try {} '.format(response_restarent['restaurantname'])+ reason+'\n'
+                else:
+                    bot_msg ="Sorry could not filter for your preferences but would you like to try {}".format(response_restarent['restaurantname'])
             else:
                 if response_restarent['length of stay']!= 'long stay':
                     reason= 'This hotel might be romantic but it does not allow long stay'
@@ -296,19 +306,22 @@ class Chatbot:
         df =pd.read_csv(r'raw_files/restaurant_info_withrecommendations.csv')
         matched_columns=[]
         results=pd.DataFrame()
-        config={}
-        with open(r'config.txt', "r") as file:
-            config_str=file.read()
-        config=json.loads(config_str)
+        
         if intent in ['restart'] or message=='restart':
-            if config['allow_Restart']=='true': 
+            if self.config['allow_Restart']=='true': 
                 self.current_state='1.hello'
                 bot_msg='Sure,I\'m a bot is there something you are looking for?\n'
                 self.prevbotresp=bot_msg
-                self.engine.say(bot_msg)
-                if config["Delay"] =='true':
+                
+                if self.config["Delay"] =='true':
                     time.sleep(20)
-                self.engine.runAndWait()
+                if self.config["texttoSpeach"] =="true":
+                    self.engine.say(bot_msg)
+                    self.engine.runAndWait()
+                self.reports["no_conversations"]=self.reports["no_conversations"]+1
+                self.reports["average_restarts"]=(self.reports["average_restarts"]+1)/self.reports["no_conversations"]
+                self.reports["average_user_utterances"]=(self.reports["dialogs"]+1)/self.reports["no_conversations"]
+                
                 return bot_msg
             else:
                 return 'Cannot start over try changing the configuration'
@@ -320,13 +333,15 @@ class Chatbot:
                     bot_msg,matched_columns=self.prepresponse(message,intent,results,matched_columns)
                 if intent=='no dialog':
                     bot_msg='Sorry I could not understand want to try something else?\n'
-                if config['caps'] == 'true':
+                if self.config['caps'] == 'true':
                     bot_msg=bot_msg.upper()
                 self.prevbotresp=bot_msg
-                self.engine.say(bot_msg)
-                if config["Delay"] =='true':
+                if self.config["Delay"] =='true':
                     time.sleep(20)
-                self.engine.runAndWait()
+                if self.config["texttoSpeach"] =="true":
+                    self.engine.say(bot_msg)
+                    self.engine.runAndWait()
+                self.reports["dialogs"]=self.reports["dialogs"]+1
                 return bot_msg            
             elif self.current_state == '2.select_prefs':
                 results =pd.read_csv(r'raw_files/filtered_hotels.csv')
@@ -369,29 +384,33 @@ class Chatbot:
                         bot_msg='Would you like to try {} '.format(response_restarent['restaurantname'])
                         self.current_state='3.suggest_rest'
                 if (intent in['bye','thankyou'] or 'bye' in message):
-                    bot_msg ='Bye See you\n'
-                    self.current_state='1.hello' 
+                    bot_msg ='Bye See you\n Start over to start a new search'
+                     
                 if (intent in['ack','affirm','confirm']):
                     bot_msg ='Cool is there anything else you need\n'
 
-                if config['caps'] == 'true':
+                if self.config['caps'] == 'true':
                     bot_msg=bot_msg.upper()
                 self.prevbotresp=bot_msg
-                self.engine.say(bot_msg)
-                if config["Delay"] =='true':
+                
+                if self.config["Delay"] =='true':
                     time.sleep(20)
-                self.engine.runAndWait()
+                if self.config["texttoSpeach"] =="true":
+                    self.engine.say(bot_msg)
+                    self.engine.runAndWait()
+                self.reports["dialogs"]=self.reports["dialogs"]+1
                 return bot_msg
             elif self.current_state == '3.suggest_rest':
                 if (intent in['bye','thankyou'] or 'bye' in message):
-                    bot_msg ='Bye See you\n'
-                    self.current_state='1.hello' 
+                    bot_msg ='Bye See you\n Start over to start a new search'
+                    
                 if (intent in['ack','affirm','confirm']):
                     bot_msg ='Cool is there anything else you need\n'
                 if intent in ['reqalts','reqmore','deny','negate']:
                     df=pd.read_csv(r'raw_files/filtered_hotels.csv')
                     selected_hotel= pd.read_csv(r'raw_files/selected_restaurant.csv')
                     results=self.alternate_response(df,selected_hotel)
+                    self.reports["alternates"]=self.reports["alternates"]+1
                     if len(results)==0:
                         bot_msg='Sorry could not find any other restaurant with the criteria'
                     else:
@@ -405,13 +424,15 @@ class Chatbot:
                     self.current_state='4.Information'
                 if intent == 'no dialog':
                     bot_msg ='Sorry did not get that try "start over" if you want to find a new restaurant\n'
-                if config['caps'] == 'true':
+                if self.config['caps'] == 'true':
                     bot_msg=bot_msg.upper()
                 self.prevbotresp=bot_msg
-                self.engine.say(bot_msg)
-                if config["Delay"] =='true':
+                if self.config["Delay"] =='true':
                     time.sleep(20)
-                self.engine.runAndWait()
+                if self.config["texttoSpeach"] =="true":
+                    self.engine.say(bot_msg)
+                    self.engine.runAndWait()
+                self.reports["dialogs"]=self.reports["dialogs"]+1                
                 return bot_msg
             elif self.current_state=='4.Information':
                 if intent =='request':
@@ -425,14 +446,15 @@ class Chatbot:
                     bot_msg ='Cool is there anything else you need\n'
                 if intent == 'no dialog':
                     bot_msg ='Sorry did not get that try "start over" if you want to find a new restaurant\n'
-                if config['caps'] == 'true':
+                if self.config['caps'] == 'true':
                     bot_msg=bot_msg.upper()
                 self.prevbotresp=bot_msg
-                self.engine.say(bot_msg)
-                self.engine.runAndWait()
-                if config["Delay"] =='true':
+                if self.config["Delay"] =='true':
                     time.sleep(20)
-                self.engine.runAndWait()
+                if self.config["texttoSpeach"] =="true":
+                    self.engine.say(bot_msg)
+                    self.engine.runAndWait()
+                self.reports["dialogs"]=self.reports["dialogs"]+1                
                 return bot_msg
         
 
@@ -445,6 +467,13 @@ class Chatbot:
                 bot_response=self.bot_response(msg)
                 msg= input(bot_response)
                 if msg == 'quit':
+                    self.reports["no_conversations"]=self.reports["no_conversations"]+1
+                    self.reports["average_user_utterances"]=(self.reports["dialogs"]+1)/self.reports["no_conversations"]
+                    self.reports["dialogs"]=0
+                    
+                    with open(r"raw_files/usagereports.txt", "w") as f:
+                        reports=json.dumps(self.reports)
+                        f.write(reports)
                     if os.path.exists(r'raw_files/selected_restaurant.csv'):
                         os.remove(r'raw_files/selected_restaurant.csv')
                     if os.path.exists(r'raw_files/filtered_hotels.csv'):
@@ -453,6 +482,13 @@ class Chatbot:
                         os.remove(r'raw_files/closest_results.csv')    
                     flag= False
             except:
+                self.reports["no_conversations"]=self.reports["no_conversations"]+1
+                self.reports["Exceptions"]=self.reports["Exceptions"]+1
+                self.reports["average_user_utterances"]=(self.reports["dialogs"]+1)/self.reports["no_conversations"]
+                self.reports["dialogs"]=0
+                with open(r"raw_files/usagereports.txt", "w") as f:
+                        reports=json.dumps(self.reports)
+                        f.write(reports)
                 if os.path.exists(r'raw_files/selected_restaurant.csv'):
                         os.remove(r'raw_files/selected_restaurant.csv')
                 if os.path.exists(r'raw_files/filtered_hotels.csv'):
