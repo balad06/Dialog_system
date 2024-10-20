@@ -95,7 +95,7 @@ class Chatbot:
                 results=self.closest_results(keywords,results)
                 if len(results)==0:
                     if intent=='inform' or intent =='request':
-                        bot_msg='Could not find a match wanna look for do you have someother preferences\n'
+                        bot_msg='Could not find a match wanna look for do you have some other preferences RESTART\n'
                     else:
                         bot_msg = self.generic_response(intent,message)
                 else:
@@ -137,7 +137,8 @@ class Chatbot:
     
     def closest_results(self,keywords,results):
         if len(results)==0:
-            df =pd.read_csv(r'raw_files/restaurant_info_withrecommendations.csv')
+            # df =pd.read_csv(r'raw_files/filtered_hotels.csv')
+            return pd.DataFrame()
         else:
             df=results
         if keywords!=[]:
@@ -249,53 +250,55 @@ class Chatbot:
                 for i in syn.lemmas():
                     wrdsynms.append(i.name())
             synonyms[word]=list(set(wrdsynms))
-        
-        for keyword in keywords:
-            if keyword in synonyms['touristic']:
-                filtered_hotels=filtered_hotels[filtered_hotels['food'] != "romanian"]
-                filtered_hotels = filtered_hotels[((filtered_hotels['pricerange'] == "cheap") 
-                                                  & (filtered_hotels['food quality'] == "good"))] 
-                reason ='it is touristic because it is cheap and has good food'
-                filters_applied.append('touristic')
-            if (keyword in synonyms['children'] or keyword == 'children'):
-                filtered_hotels = filtered_hotels[filtered_hotels['length of stay'] == "short stay"]
-                reason = "it child-friendly, because spending a long time is not advised when taking children"
-                filters_applied.append('children')
-            if keyword in synonyms['romantic']:
-                filtered_hotels_rom = filtered_hotels[(filtered_hotels['crowdedness'] == "not busy") 
-                                                  & (filtered_hotels['length of stay'] == "long stay")]
-                reason = "it is romantic, because it allows you to stay for a long time and is not busy"
-                if len(filtered_hotels_rom)==0:
-                    filtered_hotels_rom = filtered_hotels[(filtered_hotels['crowdedness'] == "not busy") 
-                                                  | (filtered_hotels['length of stay'] == "long stay")]
-                    condtional_romantic=True
-                filtered_hotels =filtered_hotels_rom
-                filters_applied.append('romantic')                    
-            if keyword=="assigned seats":
-                filtered_hotels = filtered_hotels[filtered_hotels['crowdedness'] == "busy"]
-                reason =" it has assigned seats, because in a busy restaurant the waiter decides where you sit"
-                filters_applied.append('assigned seats')
-
-
-        
         if len(filtered_hotels)==0:
-            bot_msg='Sorry could not find the hotel with your requirements want to try something else>\n'
+            bot_msg='Sorry could not find the hotel with your requirements want to try something else RESTART>\n'    
         else:
-            selected_restaurant=filtered_hotels.sample(n=1)
-            response_restarent=selected_restaurant.iloc[0].to_dict()
-            filtered_hotels.to_csv(r'raw_files/filtered_hotels.csv',index=False)
-            selected_restaurant.to_csv(r'raw_files/selected_restaurant.csv',index=False)
-            if condtional_romantic == False:
-                if reason!=None:
-                    bot_msg='Would you like to try {} '.format(response_restarent['restaurantname'])+ reason+'\n'
-                else:
-                    bot_msg ="Sorry could not filter for your preferences but would you like to try {}".format(response_restarent['restaurantname'])
+            for keyword in keywords:
+                if keyword in synonyms['touristic']:
+                    filtered_hotels=filtered_hotels[filtered_hotels['food'] != "romanian"]
+                    filtered_hotels = filtered_hotels[((filtered_hotels['pricerange'] == "cheap") 
+                                                  & (filtered_hotels['food quality'] == "good"))] 
+                    reason ='it is touristic because it is cheap and has good food'
+                    filters_applied.append('touristic')
+                if (keyword in synonyms['children'] or keyword == 'children'):
+                    filtered_hotels = filtered_hotels[filtered_hotels['length of stay'] == "short stay"]
+                    reason = "it child-friendly, because spending a long time is not advised when taking children"
+                    filters_applied.append('children')
+                if keyword in synonyms['romantic']:
+                    filtered_hotels_rom = filtered_hotels[(filtered_hotels['crowdedness'] == "not busy") 
+                                                  & (filtered_hotels['length of stay'] == "long stay")]
+                    reason = "it is romantic, because it allows you to stay for a long time and is not busy"
+                    if len(filtered_hotels_rom)==0:
+                        filtered_hotels_rom = filtered_hotels[(filtered_hotels['crowdedness'] == "not busy") 
+                                                  | (filtered_hotels['length of stay'] == "long stay")]
+                        condtional_romantic=True
+                    filtered_hotels =filtered_hotels_rom
+                    filters_applied.append('romantic')                    
+                if keyword=="assigned seats":
+                    filtered_hotels = filtered_hotels[filtered_hotels['crowdedness'] == "busy"]
+                    reason =" it has assigned seats, because in a busy restaurant the waiter decides where you sit"
+                    filters_applied.append('assigned seats')
+
+
+        
+            if len(filtered_hotels)==0:
+                bot_msg='Sorry could not find the hotel with your requirements want to try something else RESTART>\n'
             else:
-                if response_restarent['length of stay']!= 'long stay':
-                    reason= 'This hotel might be romantic but it does not allow long stay'
+                selected_restaurant=filtered_hotels.sample(n=1)
+                response_restarent=selected_restaurant.iloc[0].to_dict()
+                filtered_hotels.to_csv(r'raw_files/filtered_hotels.csv',index=False)
+                selected_restaurant.to_csv(r'raw_files/selected_restaurant.csv',index=False)
+                if condtional_romantic == False:
+                    if reason!=None:
+                        bot_msg='Would you like to try {} '.format(response_restarent['restaurantname'])+ reason+'\n'
+                    else:
+                        bot_msg ="Sorry could not filter for your preferences but would you like to try {}".format(response_restarent['restaurantname'])
                 else:
-                    reason= 'This hotel might be romantic but it might be busy at times'
-                bot_msg='Would you like to try {} '.format(response_restarent['restaurantname'])+ reason+'\n'
+                    if response_restarent['length of stay']!= 'long stay':
+                        reason= 'This hotel might be romantic but it does not allow long stay'
+                    else:
+                        reason= 'This hotel might be romantic but it might be busy at times'
+                    bot_msg='Would you like to try {} '.format(response_restarent['restaurantname'])+ reason+'\n'
             self.current_state='3.suggest_rest'
         return bot_msg
     
