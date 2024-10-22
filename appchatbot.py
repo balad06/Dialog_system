@@ -202,12 +202,13 @@ class Chatbot:
     def additional_details(self,msg):
         details=[]
         selected_hotel= pd.read_csv(r'raw_files/selected_restaurant.csv')
+        selected_hotel=selected_hotel.fillna('')
         response_restarent=selected_hotel.iloc[0].to_dict()
         keywords=self.keyextractions(msg)
         keywords, scores = map(list, zip(*keywords))
         
         if 'address' in keywords:
-            if response_restarent['addr']!=None and response_restarent['addr']!='':
+            if response_restarent['addr']!='':
                 details.append(response_restarent['addr'])
 
 
