@@ -207,17 +207,17 @@ class Chatbot:
         keywords, scores = map(list, zip(*keywords))
         
         if 'address' in keywords:
-            if response_restarent['addr']!=None:
+            if response_restarent['addr']!=None and response_restarent['addr']!='':
                 details.append(response_restarent['addr'])
 
 
         if 'phone' in keywords or 'number' in keywords:
-            if response_restarent['phone']!=None:
+            if response_restarent['phone']!=None and response_restarent['phone']!='':
                 details.append(response_restarent['phone'])
 
 
         if 'postcode' in keywords or 'post' in keywords:
-            if response_restarent['post']!=None:
+            if response_restarent['post']!=None and response_restarent['post']!='':
                 details.append(response_restarent['postcode'])
 
         return details
