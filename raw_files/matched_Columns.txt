@@ -1,1 +1,1 @@
-food,pricerange
+pricerange,area,food

@@ -207,15 +207,18 @@ class Chatbot:
         keywords, scores = map(list, zip(*keywords))
         
         if 'address' in keywords:
-            details.append(response_restarent['addr'])
+            if response_restarent['addr']!=None:
+                details.append(response_restarent['addr'])
 
 
         if 'phone' in keywords or 'number' in keywords:
-            details.append(response_restarent['phone'])
+            if response_restarent['phone']!=None:
+                details.append(response_restarent['phone'])
 
 
         if 'postcode' in keywords or 'post' in keywords:
-            details.append(response_restarent['postcode'])
+            if response_restarent['post']!=None:
+                details.append(response_restarent['postcode'])
 
         return details
     
@@ -422,8 +425,11 @@ class Chatbot:
                         bot_msg='Would you like to try {} '.format(response_restarent['restaurantname'])
                 if intent =='request':
                     details=self.additional_details(message)
-                    details_Str=','.join(details)
-                    bot_msg ='The requested details are {}'.format(details_Str)
+                    if len(details)==0:
+                        bot_msg ='Could not get the requested details'
+                    else:
+                        details_Str=','.join(details)
+                        bot_msg ='The requested details are {}'.format(details_Str)
                     self.current_state='4.Information'
                 if intent == 'no dialog':
                     bot_msg ='Sorry did not get that try "start over" if you want to find a new restaurant\n'
@@ -464,7 +470,16 @@ class Chatbot:
     
     def class_bot(self):
         flag= True
-        msg = input("Hi I'm a bot is anything i can help you with:")
+        msg = input('''Sample  conversation:HI, I'm a bot is there something you are looking for?
+    Can I get a chinese restaurant
+    DO YOU HAVE ANY PREFERENCES OF PRICERANGE, AREA ?no
+    DO YOU HAVE ANY OTHER ADDTIONAL PREFERENCES? touristic
+    WOULD YOU LIKE TO TRY THE MISSING SOCK IT IS TOURISTIC BECAUSE IT IS CHEAP AND HAD GOOD FOOD
+    Tasks:
+    Indian restaurant in the south
+    Find a romantic Italian restaurant 
+    Find a cheap Spanish restaurant and get their phones number                
+    Hi I'm a bot is anything i can help you with:''')
         while flag:
             try:
                 bot_response=self.bot_response(msg)
